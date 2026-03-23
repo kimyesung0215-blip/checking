@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>체크리스트</title>
+<link href="https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@300;500;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --surface3: #2a2a38;
+    --accent: #7c6aff;
+    --accent2: #ff6a9e;
+    --accent3: #6affb8;
+    --accent4: #ffb86a;
+    --text: #f0eeff;
+    --text2: #9990cc;
+    --text3: #5a5480;
+    --danger: #ff4a6a;
+    --radius: 18px;
+    --radius-sm: 10px;
+    --shadow: 0 8px 32px rgba(124,106,255,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-x: hidden;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 430px;
+    min-height: 100vh;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 52px 24px 20px;
+    position: relative;
+  }
+  .header-bg {
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(124,106,255,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-title {
+    font-family: 'Gmarket Sans', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-date {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+  .header-stats {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .stat-pill {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-pill span { color: var(--accent); font-weight: 700; font-family: 'Gmarket Sans', sans-serif; }
+
+  /* CATEGORY TABS */
+  .cat-scroll {
+    overflow-x: auto;
+    padding: 0 24px 16px;
+    scrollbar-width: none;
+  }
+  .cat-scroll::-webkit-scrollbar { display: none; }
+  .cat-tabs {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .cat-tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: 'Gmarket Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    background: var(--surface);
+    color: var(--text2);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+  }
+  .cat-tab.active {
+    background: var(--accent);
+    color: white;
+    border-color: transparent;
+  }
+  .cat-tab .cat-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+  }
+  .cat-tab .badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 10px;
+  }
+  .cat-tab:not(.active) .badge {
+    background: var(--surface2);
+    color: var(--text3);
+  }
+  .cat-add-btn {
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: transparent;
+    border: 1.5px dashed var(--surface3);
+    color: var(--text3);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center;
+  }
+  .cat-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ADD TASK BAR */
+  .add-bar {
+    margin: 0 16px 16px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: 1.5px solid var(--surface3);
+    transition: border-color 0.2s;
+  }
+  .add-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,106,255,0.1);
+  }
+  .add-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .add-input::placeholder { color: var(--text3); }
+  .add-opts {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .icon-btn {
+    background: var(--surface2);
+    border: none;
+    border-radius: 8px;
+    padding: 7px 8px;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+    display: flex; align-items: center;
+  }
+  .icon-btn:hover { background: var(--surface3); color: var(--text); }
+  .add-submit {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 14px;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.15s;
+    display: flex; align-items: center;
+  }
+  .add-submit:hover { background: #9080ff; transform: scale(1.05); }
+  .add-submit:active { transform: scale(0.97); }
+
+  /* MINI DATE PICKER (inline) */
+  .mini-date-row {
+    display: none;
+    margin: -8px 16px 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    gap: 10px;
+    align-items: center;
+  }
+  .mini-date-row.visible { display: flex; }
+  .mini-date-row input[type="date"] {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--surface3);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    outline: none;
+    color-scheme: dark;
+  }
+  .mini-date-row input[type="date"]:focus { border-color: var(--accent); }
+  .deadline-label { font-size: 12px; color: var(--text3); }
+  .deadline-clear {
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 16px; padding: 2px 6px;
+  }
+  .deadline-clear:hover { color: var(--danger); }
+
+  /* TASK LIST */
+  .task-list {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .task-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border: 1.5px solid var(--surface2);
+    transition: all 0.2s;
+    position: relative;
+    animation: slideIn 0.25s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .task-card:hover { border-color: var(--surface3); }
+  .task-card.done {
+    opacity: 0.55;
+  }
+  .task-card.done .task-title {
+    text-decoration: line-through;
+    color: var(--text3);
+  }
+
+  .check-circle {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--surface3);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .check-circle.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .check-circle.checked::after {
+    content: '✓';
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-word;
+    line-height: 1.4;
+  }
+  .task-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .task-cat-badge {
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 10px;
+    font-family: 'Gmarket Sans', sans-serif;
+    font-weight: 500;
+  }
+  .task-deadline {
+    font-size: 11px;
+    color: var(--text3);
+    display: flex; align-items: center; gap: 3px;
+  }
+  .task-deadline.overdue { color: var(--danger); }
+  .task-deadline.soon { color: var(--accent4); }
+
+  .task-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .task-action-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 3px 5px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .task-action-btn:hover { background: var(--surface2); color: var(--text); }
+  .task-action-btn.del:hover { color: var(--danger); }
+
+  /* EDIT MODE */
+  .edit-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 15px;
+    outline: none;
+    margin-top: 2px;
+  }
+
+  /* SECTION SEPARATOR */
+  .section-label {
+    padding: 16px 24px 8px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'Gmarket Sans', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--surface2);
+  }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; line-height: 1.6; }
+
+  /* MODAL (category add) */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: flex-end;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface2);
+    border-radius: 24px 24px 0 0;
+    padding: 24px;
+    width: 100%;
+    max-width: 430px;
+    animation: slideUp 0.25s ease-out;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-title {
+    font-family: 'Gmarket Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .modal-input {
+    width: 100%;
+    background: var(--surface3);
+    border: 1.5px solid var(--surface3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 12px;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+  .color-picker {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .color-dot {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .color-dot.selected { border-color: white; transform: scale(1.15); }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btn {
+    flex: 1; padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Gmarket Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .modal-btn.cancel { background: var(--surface3); color: var(--text2); }
+  .modal-btn.confirm { background: var(--accent); color: white; }
+  .modal-btn:hover { opacity: 0.85; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 3px;
+    background: var(--surface2);
+    margin: 0 24px 16px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    transition: width 0.4s ease;
+  }
+
+  /* NOTIFICATION TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface3);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 200;
+    transition: transform 0.3s;
+    white-space: nowrap;
+    border: 1px solid var(--surface3);
+    box-shadow: var(--shadow);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* CAT COLORS */
+  .cc1 { background: rgba(124,106,255,0.2); color: #a899ff; }
+  .cc2 { background: rgba(255,106,158,0.2); color: #ff99c0; }
+  .cc3 { background: rgba(106,255,184,0.2); color: #80ffc7; }
+  .cc4 { background: rgba(255,184,106,0.2); color: #ffcc80; }
+  .cc5 { background: rgba(106,200,255,0.2); color: #80d4ff; }
+  .cc6 { background: rgba(200,106,255,0.2); color: #da80ff; }
+
+  .bottom-space { height: 40px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-bg"></div>
+    <div class="header-title">✦ CheckList</div>
+    <div class="header-date" id="today-date"></div>
+    <div class="header-stats">
+      <div class="stat-pill">전체 <span id="stat-total">0</span></div>
+      <div class="stat-pill">완료 <span id="stat-done">0</span></div>
+      <div class="stat-pill">오늘 마감 <span id="stat-today">0</span></div>
+    </div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <!-- CATEGORY TABS -->
+  <div class="cat-scroll">
+    <div class="cat-tabs" id="cat-tabs">
+      <div class="cat-tab active" data-cat="all">전체 <span class="badge" id="badge-all">0</span></div>
+    </div>
+  </div>
+
+  <!-- ADD BAR -->
+  <div class="add-bar">
+    <input class="add-input" id="add-input" placeholder="새 항목 추가..." />
+    <div class="add-opts">
+      <button class="icon-btn" id="toggle-date-btn" title="마감일 설정">📅</button>
+      <button class="add-submit" id="add-btn">＋</button>
+    </div>
+  </div>
+  <div class="mini-date-row" id="date-row">
+    <span class="deadline-label">마감일</span>
+    <input type="date" id="deadline-input" />
+    <button class="deadline-clear" id="deadline-clear">✕</button>
+  </div>
+
+  <!-- TASK LIST -->
+  <div id="task-list-container"></div>
+
+  <div class="bottom-space"></div>
+</div>
+
+<!-- CATEGORY MODAL -->
+<div class="overlay" id="cat-modal">
+  <div class="modal">
+    <div class="modal-title">새 카테고리</div>
+    <input class="modal-input" id="cat-name-input" placeholder="카테고리 이름" maxlength="12" />
+    <div class="color-picker" id="color-picker"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" id="cat-cancel">취소</button>
+      <button class="modal-btn confirm" id="cat-confirm">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const COLORS = ['#7c6aff','#ff6a9e','#6affb8','#ffb86a','#6ac8ff','#c86aff'];
+const COLOR_CLASS = ['cc1','cc2','cc3','cc4','cc5','cc6'];
+
+let tasks = JSON.parse(localStorage.getItem('ck_tasks') || '[]');
+let categories = JSON.parse(localStorage.getItem('ck_cats') || '["공부","운동","할 일"]');
+let activeCat = 'all';
+let selectedColor = 0;
+let showDatePicker = false;
+let editingId = null;
+
+// Today
+const now = new Date();
+const todayStr = now.toISOString().split('T')[0];
+document.getElementById('today-date').textContent =
+  now.toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric',weekday:'long'});
+
+function save() {
+  localStorage.setItem('ck_tasks', JSON.stringify(tasks));
+  localStorage.setItem('ck_cats', JSON.stringify(categories));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function deadlineStatus(dl) {
+  if (!dl) return null;
+  if (dl < todayStr) return 'overdue';
+  if (dl === todayStr) return 'today';
+  const diff = (new Date(dl) - new Date(todayStr)) / 86400000;
+  if (diff <= 2) return 'soon';
+  return 'normal';
+}
+
+function deadlineText(dl) {
+  if (!dl) return '';
+  const status = deadlineStatus(dl);
+  const d = new Date(dl + 'T00:00:00');
+  const fmt = d.toLocaleDateString('ko-KR', {month:'short',day:'numeric'});
+  if (status === 'overdue') return '⚠️ ' + fmt + ' 초과';
+  if (status === 'today') return '🔥 오늘 마감';
+  if (status === 'soon') return '⏰ ' + fmt;
+  return '📅 ' + fmt;
+}
+
+function catColorClass(catName) {
+  const idx = categories.indexOf(catName);
+  return idx >= 0 ? COLOR_CLASS[idx % 6] : 'cc1';
+}
+
+function catColor(catName) {
+  const idx = categories.indexOf(catName);
+  return idx >= 0 ? COLORS[idx % 6] : COLORS[0];
+}
+
+function renderCats() {
+  const tabs = document.getElementById('cat-tabs');
+  const filtered = activeCat === 'all' ? tasks : tasks.filter(t => t.cat === activeCat);
+  const totalBadge = tasks.filter(t => !t.done).length;
+
+  tabs.innerHTML = `<div class="cat-tab ${activeCat==='all'?'active':''}" data-cat="all">전체 <span class="badge">${totalBadge}</span></div>`;
+
+  categories.forEach((cat, i) => {
+    const count = tasks.filter(t => t.cat === cat && !t.done).length;
+    const color = COLORS[i % 6];
+    const isActive = activeCat === cat;
+    const tab = document.createElement('div');
+    tab.className = 'cat-tab' + (isActive ? ' active' : '');
+    tab.dataset.cat = cat;
+    tab.innerHTML = `<span class="cat-dot" style="background:${color}"></span>${cat} <span class="badge">${count}</span>`;
+    if (isActive) tab.style.background = color;
+    tabs.appendChild(tab);
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'cat-add-btn';
+  addBtn.textContent = '+';
+  addBtn.addEventListener('click', () => openCatModal());
+  tabs.appendChild(addBtn);
+
+  tabs.querySelectorAll('.cat-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      activeCat = tab.dataset.cat;
+      renderAll();
+    });
+  });
+}
+
+function renderStats() {
+  const total = tasks.length;
+  const done = tasks.filter(t => t.done).length;
+  const todayDl = tasks.filter(t => t.deadline === todayStr && !t.done).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-today').textContent = todayDl;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function renderTasks() {
+  const container = document.getElementById('task-list-container');
+  let filtered = activeCat === 'all' ? [...tasks] : tasks.filter(t => t.cat === activeCat);
+  const pending = filtered.filter(t => !t.done);
+  const done = filtered.filter(t => t.done);
+
+  let html = '';
+
+  if (pending.length === 0 && done.length === 0) {
+    html = `<div class="empty"><div class="empty-icon">✦</div><div class="empty-text">아직 항목이 없어요.<br>위에서 새 항목을 추가해보세요!</div></div>`;
+  } else {
+    if (pending.length > 0) {
+      html += `<div class="task-list">` + pending.map(t => taskCardHTML(t)).join('') + `</div>`;
+    }
+    if (done.length > 0) {
+      html += `<div class="section-label">완료됨</div><div class="task-list">` + done.map(t => taskCardHTML(t)).join('') + `</div>`;
+    }
+  }
+
+  container.innerHTML = html;
+  bindTaskEvents();
+}
+
+function taskCardHTML(t) {
+  const dlStatus = deadlineStatus(t.deadline);
+  const dlClass = dlStatus === 'overdue' ? 'overdue' : dlStatus === 'soon' || dlStatus === 'today' ? 'soon' : '';
+  const catClass = catColorClass(t.cat);
+  const editing = editingId === t.id;
+
+  return `<div class="task-card ${t.done ? 'done' : ''}" data-id="${t.id}">
+    <div class="check-circle ${t.done?'checked':''}" data-toggle="${t.id}"></div>
+    <div class="task-body">
+      ${editing
+        ? `<input class="edit-input" id="edit-${t.id}" value="${t.title.replace(/"/g,'&quot;')}" />`
+        : `<div class="task-title">${escHtml(t.title)}</div>`
+      }
+      <div class="task-meta">
+        ${t.cat ? `<span class="task-cat-badge ${catClass}">${escHtml(t.cat)}</span>` : ''}
+        ${t.deadline ? `<span class="task-deadline ${dlClass}">${deadlineText(t.deadline)}</span>` : ''}
+      </div>
+    </div>
+    <div class="task-actions">
+      <button class="task-action-btn" data-edit="${t.id}">✏️</button>
+      <button class="task-action-btn del" data-del="${t.id}">🗑</button>
+    </div>
+  </div>`;
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function bindTaskEvents() {
+  document.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.toggle;
+      const t = tasks.find(t => t.id === id);
+      if (t) { t.done = !t.done; t.doneAt = t.done ? Date.now() : null; save(); renderAll(); }
+    });
+  });
+  document.querySelectorAll('[data-del]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.del;
+      tasks = tasks.filter(t => t.id !== id);
+      save(); showToast('삭제했어요'); renderAll();
+    });
+  });
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.edit;
+      if (editingId === id) {
+        commitEdit(id);
+      } else {
+        editingId = id;
+        renderTasks();
+        const inp = document.getElementById('edit-' + id);
+        if (inp) { inp.focus(); inp.select(); }
+      }
+    });
+  });
+  // Edit input blur/enter
+  if (editingId) {
+    const inp = document.getElementById('edit-' + editingId);
+    if (inp) {
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') commitEdit(editingId); if (e.key === 'Escape') { editingId = null; renderTasks(); } });
+      inp.addEventListener('blur', () => setTimeout(() => { if (editingId) commitEdit(editingId); }, 150));
+    }
+  }
+}
+
+function commitEdit(id) {
+  const inp = document.getElementById('edit-' + id);
+  if (inp) {
+    const t = tasks.find(t => t.id === id);
+    if (t && inp.value.trim()) { t.title = inp.value.trim(); save(); }
+  }
+  editingId = null;
+  renderAll();
+}
+
+function renderAll() {
+  renderCats();
+  renderStats();
+  renderTasks();
+}
+
+// ADD
+document.getElementById('add-btn').addEventListener('click', addTask);
+document.getElementById('add-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+function addTask() {
+  const inp = document.getElementById('add-input');
+  const title = inp.value.trim();
+  if (!title) { inp.focus(); return; }
+  const deadline = document.getElementById('deadline-input').value || null;
+  const cat = activeCat === 'all' ? (categories[0] || '') : activeCat;
+  tasks.unshift({ id: Date.now().toString(), title, cat, deadline, done: false, doneAt: null, createdAt: Date.now() });
+  inp.value = '';
+  save();
+  showToast('항목을 추가했어요!');
+  renderAll();
+}
+
+// DATE TOGGLE
+document.getElementById('toggle-date-btn').addEventListener('click', () => {
+  showDatePicker = !showDatePicker;
+  document.getElementById('date-row').classList.toggle('visible', showDatePicker);
+});
+document.getElementById('deadline-clear').addEventListener('click', () => {
+  document.getElementById('deadline-input').value = '';
+  showDatePicker = false;
+  document.getElementById('date-row').classList.remove('visible');
+});
+
+// CATEGORY MODAL
+const PALETTE_COLORS = ['#7c6aff','#ff6a9e','#6affb8','#ffb86a','#6ac8ff','#c86aff'];
+
+function buildColorPicker() {
+  const cp = document.getElementById('color-picker');
+  cp.innerHTML = '';
+  PALETTE_COLORS.forEach((c, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'color-dot' + (selectedColor === i ? ' selected' : '');
+    dot.style.background = c;
+    dot.addEventListener('click', () => { selectedColor = i; buildColorPicker(); });
+    cp.appendChild(dot);
+  });
+}
+
+function openCatModal() {
+  document.getElementById('cat-name-input').value = '';
+  selectedColor = 0;
+  buildColorPicker();
+  document.getElementById('cat-modal').classList.add('open');
+  setTimeout(() => document.getElementById('cat-name-input').focus(), 100);
+}
+
+document.getElementById('cat-cancel').addEventListener('click', () => document.getElementById('cat-modal').classList.remove('open'));
+document.getElementById('cat-modal').addEventListener('click', e => { if (e.target === document.getElementById('cat-modal')) document.getElementById('cat-modal').classList.remove('open'); });
+
+document.getElementById('cat-confirm').addEventListener('click', () => {
+  const name = document.getElementById('cat-name-input').value.trim();
+  if (!name) return;
+  if (categories.includes(name)) { showToast('이미 있는 카테고리예요'); return; }
+  categories.push(name);
+  save();
+  document.getElementById('cat-modal').classList.remove('open');
+  activeCat = name;
+  showToast('카테고리를 추가했어요!');
+  renderAll();
+});
+
+document.getElementById('cat-name-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('cat-confirm').click(); });
+
+// DEADLINE NOTIFICATION CHECK
+function checkDeadlineNotifications() {
+  if (!('Notification' in window)) return;
+  tasks.filter(t => !t.done && t.deadline === todayStr).forEach(t => {
+    if (Notification.permission === 'granted') {
+      // silent - just show toast on load
+    }
+  });
+  const todayItems = tasks.filter(t => !t.done && t.deadline === todayStr);
+  if (todayItems.length > 0) {
+    setTimeout(() => showToast(`오늘 마감 항목 ${todayItems.length}개가 있어요!`), 1000);
+  }
+}
+
+// INIT
+renderAll();
+checkDeadlineNotifications();
+</script>
+</body>
+</html>
