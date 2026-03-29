@@ -138,7 +138,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .alarm-save-btn:active{background:rgba(124,106,255,0.3)}
 
 /* ── EXECUTE ── */
-.execute-content{height:100%;display:flex;flex-direction:column;overflow:hidden}
+.execute-content{height:100%;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .exec-date-header{display:flex;align-items:center;padding:16px 20px 8px;flex-shrink:0;position:relative}
 .exec-date-center{position:absolute;left:50%;transform:translateX(-50%);
   display:flex;align-items:center;gap:12px;pointer-events:none}
@@ -212,7 +212,29 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   font-size:12px;cursor:pointer;padding:2px 4px}
 .exec-bottom-spacer{height:20dvh;flex-shrink:0}
 
-/* 목표 설정 입력 */
+/* 기분/한줄 최하단 고정 */
+.exec-fixed-bottom{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:8px 16px 16px;
+  display:flex;flex-direction:column;gap:6px;
+  background:var(--bg);
+  border-top:1px solid var(--surface2);
+  z-index:5;
+}
+
+/* 주간 목표 단일 체크박스 행 */
+.exec-weekly-row{display:flex;align-items:center;min-height:52px;border-bottom:1px solid rgba(255,255,255,0.03);position:relative}
+[data-theme="light"] .exec-weekly-row{border-bottom:1px solid rgba(0,0,0,0.04)}
+.exec-weekly-span{flex:1;position:relative;height:52px;display:flex;align-items:center;justify-content:center}
+.weekly-week-line{position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(124,106,255,0.25);transform:translateY(-50%);border-radius:2px}
+.weekly-week-cap-l{position:absolute;left:0;top:50%;width:1.5px;height:10px;background:rgba(124,106,255,0.35);transform:translateY(-50%)}
+.weekly-week-cap-r{position:absolute;right:0;top:50%;width:1.5px;height:10px;background:rgba(124,106,255,0.35);transform:translateY(-50%)}
+.exec-weekly-check-wrap{position:relative;z-index:1;background:var(--bg);padding:0 4px}
+[data-theme="light"] .exec-weekly-check-wrap{background:var(--bg)}
+
+/* 비활성 체크박스 */
+.exec-checkbox.disabled{cursor:default;opacity:0.25!important}
+.exec-checkbox.disabled:active{transform:none}
 .goal-input-wrap{padding:12px 16px 14px;border-top:1px solid var(--surface2)}
 .goal-input-row{display:flex;gap:8px;align-items:center}
 .goal-text-input{flex:1;background:var(--surface2);border:1.5px solid var(--surface3);
@@ -443,7 +465,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             </div>
           </div>
 
-          <div class="exec-bottom">
+          <div class="exec-fixed-bottom" id="exec-fixed-bottom">
             <div class="mood-bar">
               <div class="mood-title">오늘의 기분</div>
               <div class="mood-faces" id="mood-faces"></div>
@@ -453,7 +475,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
               <div id="note-display"></div>
             </div>
           </div>
-          <div class="exec-bottom-spacer"></div>
         </div>
       </div>
 
@@ -543,6 +564,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
               <input type="checkbox" id="toggle-split">
               <span class="toggle-slider"></span>
             </label>
+          </div>
+          <div class="settings-row" style="border-top:1px solid var(--surface2)">
+            <div class="settings-row-left">
+              <div class="settings-row-label">주간 체크 기준 요일</div>
+              <div class="settings-row-desc">주간 목표 체크박스가 고정될 요일이에요</div>
+            </div>
+            <select id="weekly-check-day" style="background:var(--surface2);border:1.5px solid var(--surface3);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'Gmarket Sans',sans-serif;font-size:12px;outline:none;cursor:pointer">
+              <option value="0">일요일</option>
+              <option value="1">월요일</option>
+              <option value="2">화요일</option>
+              <option value="3">수요일</option>
+              <option value="4">목요일</option>
+              <option value="5">금요일</option>
+              <option value="6">토요일</option>
+            </select>
           </div>
         </div>
       </div>
@@ -641,7 +677,8 @@ let settings = JSON.parse(localStorage.getItem('cl_settings') || JSON.stringify(
   splitView: false,
   alarm: false,
   alarmTime: '21:00',
-  alarmTypes: ['popup']
+  alarmTypes: ['popup'],
+  weeklyCheckDay: 0
 }));
 
 const ACCENT_PALETTES = [
@@ -722,6 +759,10 @@ function applySettings() {
   // 분리 보기 토글
   document.getElementById('toggle-split').checked = settings.splitView;
   applySplitView();
+
+  // 주간 체크 기준 요일
+  const wcdEl = document.getElementById('weekly-check-day');
+  if (wcdEl) wcdEl.value = String(settings.weeklyCheckDay ?? 0);
 
   // 테마 버튼
   document.querySelectorAll('[data-theme-val]').forEach(b => {
@@ -894,6 +935,11 @@ document.getElementById('toggle-split').onchange = function() {
   renderExecute();
 };
 
+document.getElementById('weekly-check-day').onchange = function() {
+  settings.weeklyCheckDay = +this.value;
+  saveSettings(); renderExecute();
+};
+
 document.getElementById('toggle-alarm').onchange = function() {
   settings.alarm = this.checked;
   saveSettings(); applySettings();
@@ -975,16 +1021,26 @@ function updateIndicator() {
 tabBtns.forEach(b=>b.addEventListener('click',()=>switchTab(+b.dataset.tab)));
 
 /* ── SWIPE ── */
-let startX=0,isDragging=false,dragDist=0;
+let startX=0,startY=0,isDragging=false,dragDist=0,axisLocked=false,axisH=false;
 const viewport=document.getElementById('slide-viewport');
-viewport.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;isDragging=false;dragDist=0;},{passive:true});
+viewport.addEventListener('touchstart',e=>{
+  startX=e.touches[0].clientX;
+  startY=e.touches[0].clientY;
+  isDragging=false;dragDist=0;axisLocked=false;axisH=false;
+},{passive:true});
 viewport.addEventListener('touchmove',e=>{
   const dx=e.touches[0].clientX-startX;
+  const dy=e.touches[0].clientY-startY;
+  if(!axisLocked&&(Math.abs(dx)>8||Math.abs(dy)>8)){
+    axisLocked=true;
+    axisH=Math.abs(dx)>Math.abs(dy);
+  }
+  if(!axisH) return; // 수직 스크롤이면 무시
   if(!isDragging&&Math.abs(dx)>10){isDragging=true;slideTrack.classList.add('dragging');}
   if(isDragging){dragDist=dx;slideTrack.style.transform=`translateX(${-currentTab*100+(dx/viewport.offsetWidth)*100}%)`;}
 },{passive:true});
 viewport.addEventListener('touchend',()=>{
-  if(!isDragging)return;
+  if(!isDragging){slideTrack.classList.remove('dragging');return;}
   slideTrack.classList.remove('dragging');
   const thr=viewport.offsetWidth*0.2;
   if(dragDist>thr&&currentTab>0) switchTab(currentTab-1);
@@ -1029,6 +1085,24 @@ function renderExecGrid(type,dir,centerLeft) {
   renderExecGridTo(type,dir,centerLeft,`exec-${type}-grid`);
 }
 
+// 해당 날짜가 속한 주의 일요일(주 시작) 구하기 — 일~토 기준
+function getWeekSunday(dateOffset) {
+  const d = dateFromOffset(dateOffset);
+  const day = d.getDay(); // 0=일
+  const sun = new Date(d);
+  sun.setDate(d.getDate() - day); // 해당 주 일요일
+  return sun;
+}
+
+function getWeekMonday(dateOffset) {
+  const d = dateFromOffset(dateOffset);
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  return mon;
+}
+
 function renderExecGridTo(type,dir,centerLeft,gridId) {
   const grid=document.getElementById(gridId);
   if(!grid) return;
@@ -1038,38 +1112,119 @@ function renderExecGridTo(type,dir,centerLeft,gridId) {
     return;
   }
   const animClass=dir?(dir==='right'?'anim-right':'anim-left'):'';
-  grid.innerHTML=filtered.map(t=>{
-    let cells=`<div class="exec-checks-only ${animClass}" style="height:46px">`;
-    for(let i=-L_HALF;i<=R_HALF;i++){
-      const d=dateStr(dateFromOffset(execOffset+i));
-      const chk=checkLog[t.id]&&checkLog[t.id][d];
-      const isC=i===0, dist=Math.abs(i);
-      const opac=isC?1:Math.max(0.12,1-dist/(Math.max(L_HALF,R_HALF)+1)*0.88);
-      const cl=centerLeft+i*CELL_W;
-      const bg=isC?`background:rgba(124,106,255,0.07);border-radius:6px;`:'';
-      cells+=`<div style="position:absolute;left:${cl}px;width:${CELL_W}px;height:46px;display:flex;align-items:center;justify-content:center;${bg}">
-        <div class="exec-checkbox ${chk?'checked':''}" style="opacity:${opac}" data-task="${t.id}" data-date="${d}"></div>
-      </div>`;
+  const todayDateStr = todayStr();
+
+  if(type==='weekly') {
+    const checkDayOfWeek = settings.weeklyCheckDay ?? 0;
+
+    // 화면에 보이는 날짜 범위에서 고정 요일에 해당하는 날짜를 모두 수집
+    // 각 컬럼 날짜의 요일이 checkDayOfWeek와 같으면 체크박스 표시
+    const checkDates = [];
+    for(let i=-L_HALF; i<=R_HALF; i++){
+      const d = dateFromOffset(execOffset+i);
+      if(d.getDay() === checkDayOfWeek){
+        checkDates.push(dateStr(d));
+      }
     }
-    cells+=`</div>`;
-    return `<div class="exec-row">
-      <div class="exec-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px">
-        <div class="dot" style="background:${t.color||'var(--accent)'}"></div>${esc(t.text)}
-      </div>${cells}
-    </div>`;
-  }).join('');
-  grid.querySelectorAll('.exec-checkbox').forEach(cb=>{
-    cb.onclick=()=>{
-      const tid=cb.dataset.task, dt=cb.dataset.date;
-      if(!checkLog[tid]) checkLog[tid]={};
-      checkLog[tid][dt]=!checkLog[tid][dt];
-      cb.classList.toggle('checked'); save();
-      // 미러 체크박스도 동기화
-      document.querySelectorAll(`.exec-checkbox[data-task="${tid}"][data-date="${dt}"]`).forEach(m=>{
-        if(m!==cb) m.classList.toggle('checked', checkLog[tid][dt]);
-      });
-    };
-  });
+
+    // 중앙 컬럼의 날짜가 고정 요일이면 체크 가능
+    const centerColDate = dateStr(dateFromOffset(execOffset));
+    const todayWeekCheck = checkDates.includes(centerColDate) ? centerColDate : null;
+
+    grid.innerHTML = filtered.map(t=>{
+      let cells = `<div class="exec-checks-only ${animClass}" style="height:46px">`;
+
+      for(let i=-L_HALF; i<=R_HALF; i++){
+        const colDate = dateStr(dateFromOffset(execOffset+i));
+        const cl = centerLeft + i*CELL_W;
+        if(checkDates.includes(colDate)){
+          const chk = !!(checkLog[t.id] && checkLog[t.id][colDate]);
+          const canCheck = (i === 0); // 중앙 컬럼만 체크 가능
+          cells += `<div style="position:absolute;left:${cl}px;width:${CELL_W}px;height:46px;display:flex;align-items:center;justify-content:center;background:rgba(124,106,255,0.07);border-radius:6px;z-index:1;">
+            <div class="exec-checkbox ${chk?'checked':''} ${canCheck?'':'disabled'}"
+              data-task="${t.id}" data-date="${colDate}"></div>
+          </div>`;
+        } else {
+          // 같은 주의 고정 요일 체크 여부 확인
+          const thisColDay = new Date(colDate+'T00:00:00');
+          const thisSun = new Date(thisColDay); thisSun.setDate(thisColDay.getDate()-thisColDay.getDay());
+          const thisCheckD = new Date(thisSun); thisCheckD.setDate(thisSun.getDate()+checkDayOfWeek);
+          const thisCheckDate = dateStr(thisCheckD);
+          // checkDayOfWeek 기준으로 같은 주 맞춤
+          const sameWeekCheckDate = checkDates.find(cd => {
+            const cdD = new Date(cd+'T00:00:00');
+            const cdSun = new Date(cdD); cdSun.setDate(cdD.getDate()-cdD.getDay());
+            const colSun = new Date(thisColDay); colSun.setDate(thisColDay.getDate()-thisColDay.getDay());
+            return dateStr(cdSun) === dateStr(colSun);
+          });
+          const lineChk = sameWeekCheckDate
+            ? !!(checkLog[t.id] && checkLog[t.id][sameWeekCheckDate])
+            : false;
+          const lineColor = lineChk ? 'var(--accent)' : 'rgba(124,106,255,0.2)';
+          cells += `<div style="position:absolute;left:${cl}px;width:${CELL_W}px;height:46px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:100%;height:2px;background:${lineColor};border-radius:1px;" data-line-date="${sameWeekCheckDate||''}"></div>
+          </div>`;
+        }
+      }
+      cells += `</div>`;
+      return `<div class="exec-row">
+        <div class="exec-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px">
+          <div class="dot" style="background:${t.color||'var(--accent)'}"></div>${esc(t.text)}
+        </div>${cells}
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.exec-checkbox:not(.disabled)').forEach(cb=>{
+      cb.onclick=()=>{
+        const tid=cb.dataset.task, dt=cb.dataset.date;
+        if(!checkLog[tid]) checkLog[tid]={};
+        checkLog[tid][dt]=!checkLog[tid][dt];
+        cb.classList.toggle('checked'); save();
+        // 같은 주 선 색상 즉시 업데이트
+        const row = cb.closest('.exec-checks-only');
+        if(row) row.querySelectorAll(`[data-line-date="${dt}"]`).forEach(line=>{
+          line.style.background = checkLog[tid][dt] ? 'var(--accent)' : 'rgba(124,106,255,0.2)';
+        });
+      };
+    });
+
+  } else {
+    // 일일: 기존 방식, 오늘만 체크 가능
+    grid.innerHTML=filtered.map(t=>{
+      let cells=`<div class="exec-checks-only ${animClass}" style="height:46px">`;
+      for(let i=-L_HALF;i<=R_HALF;i++){
+        const d=dateStr(dateFromOffset(execOffset+i));
+        const chk=checkLog[t.id]&&checkLog[t.id][d];
+        const isC=i===0;
+        const dist=Math.abs(i);
+        const opac=isC?1:Math.max(0.12,1-dist/(Math.max(L_HALF,R_HALF)+1)*0.88);
+        const cl=centerLeft+i*CELL_W;
+        const bg=isC?`background:rgba(124,106,255,0.07);border-radius:6px;`:'';
+        const disabledClass=isC?'':'disabled';
+        cells+=`<div style="position:absolute;left:${cl}px;width:${CELL_W}px;height:46px;display:flex;align-items:center;justify-content:center;${bg}">
+          <div class="exec-checkbox ${chk?'checked':''} ${disabledClass}" style="opacity:${isC?opac:opac*0.4}" data-task="${t.id}" data-date="${d}"></div>
+        </div>`;
+      }
+      cells+=`</div>`;
+      return `<div class="exec-row">
+        <div class="exec-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px">
+          <div class="dot" style="background:${t.color||'var(--accent)'}"></div>${esc(t.text)}
+        </div>${cells}
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.exec-checkbox:not(.disabled)').forEach(cb=>{
+      cb.onclick=()=>{
+        const tid=cb.dataset.task, dt=cb.dataset.date;
+        if(!checkLog[tid]) checkLog[tid]={};
+        checkLog[tid][dt]=!checkLog[tid][dt];
+        cb.classList.toggle('checked'); save();
+        document.querySelectorAll(`.exec-checkbox[data-task="${tid}"][data-date="${dt}"]`).forEach(m=>{
+          if(m!==cb) m.classList.toggle('checked',checkLog[tid][dt]);
+        });
+      };
+    });
+  }
 }
 
 document.getElementById('exec-prev').onclick=()=>{execOffset--;renderExecute('left');};
@@ -1282,57 +1437,88 @@ function openNotesPopup() {
 /* ── STATS ── */
 function renderStats() {
   const ct=document.getElementById('stats-content');
-  const today=todayStr();
+  const checkDayOfWeek = settings.weeklyCheckDay ?? 0;
   const dailyTasks=tasks.filter(t=>t.type==='daily');
   const weeklyTasks=tasks.filter(t=>t.type==='weekly');
 
-  const dailyDoneToday=dailyTasks.filter(t=>checkLog[t.id]&&checkLog[t.id][today]).length;
-  const dailyPct=dailyTasks.length>0?Math.round(dailyDoneToday/dailyTasks.length*100):0;
+  // ── 전체 일일 달성률 ──
+  // 모든 날짜 중 체크된 (taskId, date) 쌍의 수 / (일일 목표 수 × 기록된 날 수)
+  // 기록된 날 = checkLog에 일일 목표 중 하나라도 기록이 있는 날
+  const dailyCheckedDates = new Set();
+  dailyTasks.forEach(t => {
+    Object.entries(checkLog[t.id]||{}).forEach(([d,v]) => { if(v) dailyCheckedDates.add(d); });
+  });
+  // 일일 목표가 존재한 총 체크 가능 횟수: 날짜 수 × 일일 목표 수
+  // 날짜 범위: 첫 기록 ~ 오늘
+  let allDailyDates = new Set();
+  dailyTasks.forEach(t => Object.keys(checkLog[t.id]||{}).forEach(d => allDailyDates.add(d)));
+  allDailyDates.add(todayStr());
+  const dailyDateCount = allDailyDates.size;
+  let dailyCheckedTotal = 0;
+  dailyTasks.forEach(t => {
+    Object.values(checkLog[t.id]||{}).forEach(v => { if(v) dailyCheckedTotal++; });
+  });
+  const dailyTotal = dailyTasks.length * dailyDateCount;
+  const dailyPct = dailyTotal > 0 ? Math.round(dailyCheckedTotal / dailyTotal * 100) : 0;
 
-  let dailyWeekAvg=0;
-  if(dailyTasks.length>0){
-    let sum=0;
-    for(let i=6;i>=0;i--){const ds=dateStr(dateFromOffset(-i));const done=dailyTasks.filter(t=>checkLog[t.id]&&checkLog[t.id][ds]).length;sum+=done/dailyTasks.length*100;}
-    dailyWeekAvg=sum/7;
-  }
-  const weeklyDoneNow=weeklyTasks.filter(t=>checkLog[t.id]&&checkLog[t.id][today]).length;
-  const weeklyGoalPct=weeklyTasks.length>0?weeklyDoneNow/weeklyTasks.length*100:0;
-  let weeklyPct=0;
-  if(dailyTasks.length>0&&weeklyTasks.length>0) weeklyPct=Math.round((dailyWeekAvg+weeklyGoalPct)/2);
-  else if(dailyTasks.length>0) weeklyPct=Math.round(dailyWeekAvg);
-  else if(weeklyTasks.length>0) weeklyPct=Math.round(weeklyGoalPct);
+  // ── 전체 주간 달성률 ──
+  // 주간 체크박스는 주마다 하나씩 → 체크된 주 수 / 전체 주 수
+  let weeklyCheckedCount = 0, weeklyTotalCount = 0;
+  weeklyTasks.forEach(t => {
+    const log = checkLog[t.id] || {};
+    // 저장된 키 중 체크된 것 = 해당 주 달성
+    Object.entries(log).forEach(([d,v]) => {
+      // 주간 체크 날짜만 카운트 (해당 요일 = checkDayOfWeek)
+      const day = new Date(d+'T00:00:00').getDay();
+      if(day === checkDayOfWeek) {
+        weeklyTotalCount++;
+        if(v) weeklyCheckedCount++;
+      }
+    });
+  });
+  // 이번 주도 포함 (아직 기록 없어도 카운트)
+  // 이미 위에서 log 키로 카운트하므로 별도 추가 불필요
+  const weeklyPct = weeklyTotalCount > 0 ? Math.round(weeklyCheckedCount / weeklyTotalCount * 100) : 0;
 
-  let totalChecks=0;
-  Object.values(checkLog).forEach(ds=>Object.values(ds).forEach(v=>{if(v)totalChecks++;}));
+  // ── 연속일 (일일 기준) ──
   let streak=0;
-  for(let i=0;i<365;i++){const d=dateStr(dateFromOffset(-i));let has=false;tasks.forEach(t=>{if(checkLog[t.id]&&checkLog[t.id][d])has=true;});if(has)streak++;else if(i>0)break;}
+  for(let i=0;i<365;i++){
+    const d=dateStr(dateFromOffset(-i)); let has=false;
+    dailyTasks.forEach(t=>{if(checkLog[t.id]&&checkLog[t.id][d])has=true;});
+    if(has) streak++; else if(i>0) break;
+  }
 
+  // ── 이번 주 일별 달성 바 ──
   const wd=[];
-  for(let i=6;i>=0;i--){const d=dateFromOffset(-i),ds=dateStr(d);let c=0;tasks.forEach(t=>{if(checkLog[t.id]&&checkLog[t.id][ds])c++;});wd.push({day:DAYS_KO[d.getDay()],count:c});}
+  for(let i=6;i>=0;i--){
+    const d=dateFromOffset(-i), ds=dateStr(d);
+    let c=0; tasks.forEach(t=>{if(checkLog[t.id]&&checkLog[t.id][ds])c++;});
+    wd.push({day:DAYS_KO[d.getDay()],count:c});
+  }
   const mx=Math.max(...wd.map(w=>w.count),1);
 
   ct.innerHTML=`
     <div class="achieve-row">
       <div class="achieve-card">
-        <div class="achieve-card-label">오늘 일일 달성</div>
+        <div class="achieve-card-label">일일 목표 달성률</div>
         <div class="achieve-pct daily">${dailyPct}%</div>
-        <div class="achieve-sub">${dailyDoneToday} / ${dailyTasks.length} 완료</div>
+        <div class="achieve-sub">하루 평균 ${dailyDateCount>0?(dailyCheckedTotal/dailyDateCount).toFixed(1):0}개 체크</div>
         <div class="achieve-bar-bg"><div class="achieve-bar-fill daily" style="width:${dailyPct}%"></div></div>
       </div>
       <div class="achieve-card">
-        <div class="achieve-card-label">이번 주 달성</div>
+        <div class="achieve-card-label">주간 목표 달성률</div>
         <div class="achieve-pct weekly">${weeklyPct}%</div>
-        <div class="achieve-sub">일일 평균 ${Math.round(dailyWeekAvg)}% · 주간 ${Math.round(weeklyGoalPct)}%</div>
+        <div class="achieve-sub">${weeklyCheckedCount} / ${weeklyTotalCount} 주 달성</div>
         <div class="achieve-bar-bg"><div class="achieve-bar-fill weekly" style="width:${weeklyPct}%"></div></div>
       </div>
     </div>
     <div class="stat-row">
-      <div class="stat-mini"><div class="stat-mini-value">${totalChecks}</div><div class="stat-mini-label">총 체크 수</div></div>
+      <div class="stat-mini"><div class="stat-mini-value">${dailyCheckedTotal+weeklyCheckedCount}</div><div class="stat-mini-label">총 체크 수</div></div>
       <div class="stat-mini"><div class="stat-mini-value">${streak}</div><div class="stat-mini-label">연속일</div></div>
       <div class="stat-mini"><div class="stat-mini-value">${tasks.length}</div><div class="stat-mini-label">전체 항목</div></div>
     </div>
     <button class="notes-btn" id="notes-open-btn">✦ 날짜별 한 줄 기록 보기 <span style="color:var(--accent)">›</span></button>
-    <div class="stat-card"><div class="stat-card-title">이번 주 달성률</div>
+    <div class="stat-card"><div class="stat-card-title">이번 주 일별 달성</div>
       <div class="stat-weekly-grid">${wd.map(w=>`<div class="stat-week-day">
         <div class="stat-week-day-label">${w.day}</div>
         <div class="stat-week-day-bar"><div class="stat-week-day-fill" style="height:${(w.count/mx)*100}%"></div></div>
